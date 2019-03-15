@@ -1,0 +1,3 @@
+#!/bin/bash
+
+rm -rf $ASDF_INSTALL_PATH

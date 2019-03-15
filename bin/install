@@ -1,0 +1,32 @@
+#!/bin/bash
+
+function install_rabbitmq {
+	local install_type=$1
+	local version=$2
+	local install_path=$3
+
+	if [ "$ASDF_INSTALL_TYPE" = "ref" ]; then
+		echo "Unsupported installation type"; exit 1
+	fi
+
+	if [ "$TMPDIR" = "" ]; then
+		local tmp_download_dir=$(mktemp -d)
+	else
+		local tmp_download_dir=$TMPDIR
+	fi
+
+	case "$(uname -s)" in
+		Linux*)     os_prefix=rabbitmq-server-generic-unix;;
+		Darwin*)    os_prefix=rabbitmq-server-generic-unix;;
+		*)          echo "Unsupported OS"; exit 1;;
+	esac
+
+	curl -L https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz \
+		--output $TMPDIR/rabbitmq.tar.xz
+
+	tar -xf $TMPDIR/rabbitmq.tar.xz -C $TMPDIR && rm $TMPDIR/rabbitmq.tar.xz
+
+	mv $TMPDIR/rabbitmq_server-$version/* $install_path
+}
+
+install_rabbitmq $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
