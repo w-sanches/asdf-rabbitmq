@@ -27,11 +27,11 @@ function install_rabbitmq {
 		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz
 	fi
 
-	curl -L $url --output $TMPDIR/rabbitmq.tar.xz
+	curl -L $url --output $tmp_download_dir/rabbitmq.tar.xz
 
-	tar -xf $TMPDIR/rabbitmq.tar.xz -C $TMPDIR && rm $TMPDIR/rabbitmq.tar.xz
+	tar -xf $tmp_download_dir/rabbitmq.tar.xz -C $tmp_download_dir && rm $tmp_download_dir/rabbitmq.tar.xz
 
-	mv $TMPDIR/rabbitmq_server-$version/* $install_path
+	mv $tmp_download_dir/rabbitmq_server-$version/* $install_path
 }
 
 install_rabbitmq $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
