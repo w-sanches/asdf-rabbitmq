@@ -21,8 +21,13 @@ function install_rabbitmq {
 		*)          echo "Unsupported OS"; exit 1;;
 	esac
 
-	curl -L https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz \
-		--output $TMPDIR/rabbitmq.tar.xz
+	if [[ $version < '3.7.0' ]]; then
+		url=http://www.rabbitmq.com/releases/rabbitmq-server/v$version/$os_prefix-$version.tar.xz
+	else
+		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz
+	fi
+
+	curl -L $url --output $TMPDIR/rabbitmq.tar.xz
 
 	tar -xf $TMPDIR/rabbitmq.tar.xz -C $TMPDIR && rm $TMPDIR/rabbitmq.tar.xz
 
