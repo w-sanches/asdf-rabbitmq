@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/w-sanches/asdf-rabbitmq.svg?branch=master)](https://travis-ci.org/w-sanches/asdf-rabbitmq)
+
 # asdf-rabbitmq
 
 Rabbitmq plugin for [asdf](https://github.com/asdf-vm/asdf) version manager
