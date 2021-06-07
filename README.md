@@ -2,11 +2,17 @@
 
 # asdf-rabbitmq
 
-Rabbitmq plugin for [asdf](https://github.com/asdf-vm/asdf) version manager
+Rabbitmq plugin for [asdf](https://github.com/asdf-vm/asdf) version manager. 
+
+## Pre-requesites 
+
+Rabbitmq requires Erlang to be installed. You can use the [asdf-erlang](https://github.com/asdf-vm/asdf-erlang) plugin to install Erlang versions.
 
 ## Install
 
-> *Rabbitmq requires Erlang to be installed. You can use the [asdf-erlang](https://github.com/asdf-vm/asdf-erlang) plugin to install Erlang versions.*
+```
+asdf plugin add rabbitmq https://github.com/w-sanches/asdf-rabbitmq.git
+```
 
 ### Support
 
