@@ -1,9 +1,12 @@
 #!/bin/bash
 
+set -e -o pipefail 
+
 function install_rabbitmq {
 	local install_type=$1
 	local version=$2
 	local install_path=$3
+	local _semvar _version
 
 	if [ "$ASDF_INSTALL_TYPE" = "ref" ]; then
 		echo "Unsupported installation type"; exit 1
@@ -21,19 +24,30 @@ function install_rabbitmq {
 		*)          echo "Unsupported OS"; exit 1;;
 	esac
 
-	if [[ $version < '3.7.0' ]]; then
-		url=http://www.rabbitmq.com/releases/rabbitmq-server/v$version/$os_prefix-$version.tar.gz
-		curl -L $url --output $tmp_download_dir/rabbitmq.tar.gz
-		tar -xzf $tmp_download_dir/rabbitmq.tar.gz -C $tmp_download_dir && \
-			rm $tmp_download_dir/rabbitmq.tar.gz
+	if [[ "rabbitmq_*" =~ ${version} ]]; then
+		_version=${version##rabbitmq_}
+		_version=${_version//_/.}
+		_semvar=${_version#v}
 	else
-		extension=xz
-		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz
+		_semvar=${version#v}
+	fi
+
+	# We do this because there is not cleaner way of comparing semantic
+	# versions in bash
+	#
+	# If rabbitmq $version >= 3.7.0
+	if [[ ${_semvar//.} -ge '370' ]]; then
+		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/$version/$os_prefix-$_semvar.tar.xz
 		curl -L $url --output $tmp_download_dir/rabbitmq.tar.xz
 		tar -xf $tmp_download_dir/rabbitmq.tar.xz -C $tmp_download_dir && \
 			rm $tmp_download_dir/rabbitmq.tar.xz
+	else
+		# rabbitmq packages for releases < 3.7.0 are not available in .tag.xz format
+		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/$version/$os_prefix-$_semvar.tar.gz
+		curl -L $url --output $tmp_download_dir/rabbitmq.tar.gz
+		tar -xzf $tmp_download_dir/rabbitmq.tar.gz -C $tmp_download_dir && \
+			rm $tmp_download_dir/rabbitmq.tar.gz
 	fi
-
 
 	mv $tmp_download_dir/rabbitmq_server-$version/* $install_path
 }
