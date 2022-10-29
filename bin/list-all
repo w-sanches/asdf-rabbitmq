@@ -6,19 +6,12 @@ function sort_versions() {
     LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
-versions_list=$(
-	curl -s https://www.rabbitmq.com/changelog.html |
-	grep -o '<td class="centre">[^<]*'              |
-	sed -n 's/^<.*>\(.*\)$/\1/p'                    |
-	grep '\.'                                       |
-	sort_versions
+tags=$(
+		git ls-remote --tags --refs https://github.com/rabbitmq/rabbitmq-server |
+		awk '(/refs\/tags\/v/ || /refs\/tags\/rabbitmq_v/) && (!/_milestone/ && !/_rc/) {print $NF}' |
+		sort_versions
 )
 
-versions=""
-
-for version in ${versions_list}
-do
-  versions="${versions} ${version}"
-done
+versions="$(echo $tags | sed 's|refs/tags/||g')"
 
 echo "$versions"
