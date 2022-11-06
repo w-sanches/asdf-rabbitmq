@@ -1,9 +1,28 @@
 #!/bin/bash
 
+set -e -o pipefail
+
+function verify_package {
+	local url=${1:?ERROR = value of url argument is not set}
+	local download_dir=${2:?ERROR = value of url argument is not set}
+	local file_suffix=${3?ERROR = value of url argument is not set}
+
+	curl -L "$url.asc" --output "$download_dir/rabbitmq.tar.$file_suffix.asc"
+	export GNUPGHOME=$(mktemp -d)
+	trap 'rm -rf "$GNUPGHOME"' EXIT ERR
+	# From https://www.rabbitmq.com/signatures.html#importing-gpg
+	RABBITMQ_PGP_KEY_ID=${RABBITMQ_PGP_KEY_ID:-0x0A9AF2115F4687BD29803A206B73A36E6026DFCA}
+	gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys "$RABBITMQ_PGP_KEY_ID";
+	gpg --batch --verify "$download_dir/rabbitmq.tar.$file_suffix.asc" "$download_dir/rabbitmq.tar.$file_suffix"
+	gpgconf --kill all
+	rm -rf "$GNUPGHOME"
+}
+
 function install_rabbitmq {
 	local install_type=$1
 	local version=$2
 	local install_path=$3
+	local _semver _version
 
 	if [ "$ASDF_INSTALL_TYPE" = "ref" ]; then
 		echo "Unsupported installation type"; exit 1
@@ -21,21 +40,41 @@ function install_rabbitmq {
 		*)          echo "Unsupported OS"; exit 1;;
 	esac
 
-	if [[ $version < '3.7.0' ]]; then
-		url=http://www.rabbitmq.com/releases/rabbitmq-server/v$version/$os_prefix-$version.tar.gz
+	if [[ ${version} =~ "rabbitmq_".*  ]]; then
+		_version=${version##rabbitmq_}
+		_version=${_version//_/.}
+		_semver=${_version#v}
+	elif [[ ${version} =~ "v".* ]]; then
+		_semver=${version#v}
+	else
+		echo "ERROR: unsupported version format ${version}"
+		exit 1
+	fi
+
+	# We do this because there is not cleaner way of comparing semantic
+	# versions in bash
+	#
+	# If rabbitmq $version >= 3.6.0
+	if [[ ${_semver//.} -ge '360' ]]; then
+		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/$version/$os_prefix-$_semver.tar.xz
+		curl -L $url --output $tmp_download_dir/rabbitmq.tar.xz
+		if command -v gpg; then
+			verify_package "${url}" "${tmp_download_dir}" "xz"
+		else
+			echo "WARNING: gpg not found, skipping package verification"
+		fi
+		tar -xf $tmp_download_dir/rabbitmq.tar.xz -C $tmp_download_dir && \
+			rm $tmp_download_dir/rabbitmq.tar.xz
+	else
+		# rabbitmq packages for releases < 3.6.0 are not available in .tag.xz format
+		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/$version/$os_prefix-$_semver.tar.gz
 		curl -L $url --output $tmp_download_dir/rabbitmq.tar.gz
 		tar -xzf $tmp_download_dir/rabbitmq.tar.gz -C $tmp_download_dir && \
 			rm $tmp_download_dir/rabbitmq.tar.gz
-	else
-		extension=xz
-		url=https://github.com/rabbitmq/rabbitmq-server/releases/download/v$version/$os_prefix-$version.tar.xz
-		curl -L $url --output $tmp_download_dir/rabbitmq.tar.xz
-		tar -xf $tmp_download_dir/rabbitmq.tar.xz -C $tmp_download_dir && \
-			rm $tmp_download_dir/rabbitmq.tar.xz
 	fi
 
-
-	mv $tmp_download_dir/rabbitmq_server-$version/* $install_path
+	mv $tmp_download_dir/rabbitmq_server-$_semver/* $install_path
+	echo "INFO: successfully installed rabbitmq version ${version}"
 }
 
 install_rabbitmq $ASDF_INSTALL_TYPE $ASDF_INSTALL_VERSION $ASDF_INSTALL_PATH
